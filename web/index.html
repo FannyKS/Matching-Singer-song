@@ -405,6 +405,93 @@
     @media (max-width: 620px) {
       .board { grid-template-columns: 1fr; }
     }
+
+    /* --- second layout: "stage" view ------------------------------------ */
+    #layout-btn {
+      background: transparent;
+      border: 1px dashed var(--accent-2);
+      color: var(--accent-2);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    #layout-btn:hover { background: rgba(255, 209, 102, 0.1); }
+
+    #board { position: relative; }
+    #link-line {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 25;
+    }
+    .link {
+      stroke: var(--accent-2);
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-dasharray: 3 12;
+      animation: dashFlow 0.7s linear infinite;
+      filter: drop-shadow(0 0 6px rgba(255, 209, 102, 0.8));
+    }
+    @keyframes dashFlow { to { stroke-dashoffset: -60; } }
+
+    .board.layout-stage { grid-template-columns: 1fr; gap: 30px; }
+    .board.layout-stage .column .cards {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .board.layout-stage .column.song .card {
+      width: 148px;
+      min-height: 86px;
+      flex: 0 0 auto;
+    }
+    .board.layout-stage .column.singer .card {
+      width: 148px;
+      min-height: 138px;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+    }
+    .board.layout-stage .column.singer .photo { width: 66px; height: 66px; }
+
+    /* --- music-note song cards (notes scattered randomly) --------------- */
+    .note-ico {
+      position: absolute;
+      width: 26%;
+      fill: rgba(255, 209, 102, 0.4);
+    }
+    .num {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.9rem;
+      font-weight: 900;
+      color: var(--text);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+    }
+
+    /* --- singer photos on the cards ------------------------------------- */
+    .singer .card { flex-direction: column; gap: 8px; }
+    .photo {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--card-front);
+      border: 2px solid rgba(255, 209, 102, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+    }
+    .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo .initial { font-size: 1.5rem; font-weight: 900; color: var(--accent-2); }
+    .singer .card .name { font-weight: 700; text-align: center; line-height: 1.25; }
   </style>
 </head>
 <body>
@@ -418,6 +505,7 @@
         <div class="chip">Matched <b id="progress">0/0</b></div>
         <div class="chip">Time <b id="clock">0:00</b></div>
         <button id="music-btn">🎵 Music</button>
+        <button id="layout-btn" title="Switch between the two board layouts">🎭 Stage view</button>
         <button id="reload-btn" title="Fresh board from the latest songs folder">↻ Reload songs</button>
         <button id="finish-btn">⏹ Game Finish</button>
       </div>
@@ -427,7 +515,7 @@
     <div id="warnings" aria-live="polite"></div>
     <button id="retry-btn" hidden>🔄 Reload board</button>
 
-    <div class="board">
+    <div class="board" id="board">
       <section class="column song">
         <h2>♪ Songs</h2>
         <div class="cards" id="song-column"></div>
@@ -436,6 +524,7 @@
         <h2>🎙️ Singers</h2>
         <div class="cards" id="singer-column"></div>
       </section>
+      <svg id="link-line" aria-hidden="true"></svg>
     </div>
   </div>
 
@@ -567,6 +656,32 @@
       setTimeout(() => tone(93, 0.6, "triangle", 1), 90);
     }
 
+    // An animated dashed line joins the song card to its singer on a match.
+    function drawLink(a, b) {
+      const svg = $("link-line");
+      const boardRect = svg.parentElement.getBoundingClientRect();
+      const ar = a.getBoundingClientRect();
+      const br = b.getBoundingClientRect();
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("class", "link");
+      line.setAttribute("x1", ar.left + ar.width / 2 - boardRect.left);
+      line.setAttribute("y1", ar.top + ar.height / 2 - boardRect.top);
+      line.setAttribute("x2", br.left + br.width / 2 - boardRect.left);
+      line.setAttribute("y2", br.top + br.height / 2 - boardRect.top);
+      svg.appendChild(line);
+      setTimeout(() => line.remove(), 950);
+    }
+
+    // Switch between the classic two-column board and the stage layout.
+    function toggleLayout() {
+      const board = $("board");
+      const stage = board.classList.toggle("layout-stage");
+      $("layout-btn").textContent = stage ? "🎭 Classic view" : "🎭 Stage view";
+      status(stage
+        ? "Stage view — songs on top, singers below. 🎶"
+        : "Classic two-column view restored.");
+    }
+
     // --- confetti burst ------------------------------------------------------
     function confetti() {
       const colors = ["#ff6b9d", "#ffd166", "#4ade80", "#a55eea", "#45aaf2", "#ff9f43"];
@@ -651,11 +766,34 @@
         const card = document.createElement("button");
         card.className = "card";
         card.style.animationDelay = (index * 0.04) + "s";
-        card.innerHTML =
-          '<div class="face front"></div>' +
-          '<div class="face back"></div>';
-        card.querySelector(".front").textContent = index + 1;
-        card.querySelector(".back").textContent = song;
+
+        const front = document.createElement("div");
+        front.className = "face front";
+        front.innerHTML =
+          '<svg class="note-ico" viewBox="0 0 24 24">' +
+          '<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>' +
+          '<svg class="note-ico" viewBox="0 0 24 24">' +
+          '<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>' +
+          '<span class="num"></span>';
+        front.querySelector(".num").textContent = index + 1;
+
+        // Scatter the two notes at random spots on each card.
+        const notes = front.querySelectorAll(".note-ico");
+        notes[0].style.left = (4 + Math.random() * 34) + "%";
+        notes[0].style.top = (6 + Math.random() * 48) + "%";
+        notes[0].style.transform =
+          `rotate(${-28 + Math.random() * 56}deg) scale(${0.7 + Math.random() * 0.7})`;
+        notes[1].style.right = (4 + Math.random() * 34) + "%";
+        notes[1].style.bottom = (6 + Math.random() * 40) + "%";
+        notes[1].style.transform =
+          `rotate(${-28 + Math.random() * 56}deg) scale(${0.7 + Math.random() * 0.7})`;
+
+        const back = document.createElement("div");
+        back.className = "face back";
+        back.textContent = song;
+
+        card.appendChild(front);
+        card.appendChild(back);
         card.addEventListener("click", () => onSongClick(card, song));
         songCol.appendChild(card);
       });
@@ -664,7 +802,26 @@
         const card = document.createElement("button");
         card.className = "card singer-card-body";
         card.style.animationDelay = (index * 0.04) + "s";
-        card.textContent = singer;
+
+        const photo = document.createElement("span");
+        photo.className = "photo";
+        const initial = document.createElement("span");
+        initial.className = "initial";
+        initial.textContent = singer.trim().charAt(0) || "♪";
+        photo.appendChild(initial);
+
+        const img = new Image();
+        img.alt = singer;
+        img.onload = () => { initial.style.display = "none"; photo.appendChild(img); };
+        img.onerror = () => { /* keep the letter avatar */ };
+        img.src = API_BASE + "/singer-image/" + encodeURIComponent(singer);
+
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = singer;
+
+        card.appendChild(photo);
+        card.appendChild(name);
         card.addEventListener("click", () => onSingerClick(card, singer));
         singerCol.appendChild(card);
       });
@@ -727,6 +884,7 @@
             matchedCount++;
             updateProgress();
             showMatchPopup(song, singer);
+            drawLink(songCard, card);
             confetti();
             playDing();
             selected = null;
@@ -786,6 +944,7 @@
     $("retry-btn").addEventListener("click", newBoard);
     $("reload-btn").addEventListener("click", newBoard);
     $("music-btn").addEventListener("click", () => musicOn ? stopMusic() : startMusic());
+    $("layout-btn").addEventListener("click", toggleLayout);
 
     // Browsers block sound until the first click — start softly on that click.
     document.addEventListener("pointerdown", () => startMusic(), { once: true });

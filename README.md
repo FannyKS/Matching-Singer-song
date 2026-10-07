@@ -8,9 +8,15 @@ The **Olddies** singing toolbox — two things in one FastAPI app:
 
 ## The matching game
 
-- **Left column** — song cards, face down (flip one to reveal the title).
-- **Right column** — singer names, face up. A singer who performs several songs
-  appears once per song.
+- **Left column** — song cards, face down (flip one to reveal the title). Each
+  card front shows its **number on a music note**, with bonus notes scattered
+  at random spots so no two cards look alike.
+- **Right column** — singer names, face up, each with a **real photo** pulled
+  from Wikimedia (Chinese/English Wikipedia); singers without a photo get a
+  letter avatar. A singer who performs several songs appears once per song.
+- 🎭 **Stage view** — one click switches the board to a second layout with the
+  song cards across the top and the singers below (perfect for a projector).
+  Correct matches draw an animated glowing line between the pair.
 - Pick a song, then pick a singer. A correct pair triggers a **"Match!"** popup
   with a confetti burst, and the pair stays frozen on the board with a green glow.
 - **↻ Reload songs** — the host presses this after adding/editing/deleting songs
@@ -50,8 +56,7 @@ Rules:
 - Everything is re-read on every new board, so edits show up on the next
   Game Finish without restarting the server.
 
-A small example file lives at `examples/songs_sample.csv` if you want a
-reference.
+A sample file lives at `songs/english_oldies.csv` if you want a reference.
 
 ## The analyzer
 
@@ -75,20 +80,21 @@ e.g. `C4` (middle C); `#`/`b` accidentals like `F#5` or `Bb2` are supported.
 │   ├── schemas.py           # Pydantic request/response models
 │   ├── routers/
 │   │   ├── matching.py      # POST /match (analyzer)
-│   │   └── game.py          # GET /game/board, POST /game/match
+│   │   ├── game.py          # GET /game/board, POST /game/match
+│   │   └── images.py        # GET /singer-image/{name} → Wikimedia photo
 │   └── services/
 │       ├── notes.py         # Note → semitone conversion
 │       ├── matcher.py       # Analyzer scoring engine
-│       └── game.py          # Answer-key loading + board sampling
+│       ├── game.py          # Answer-key loading + board sampling
+│       └── avatars.py       # Singer-photo lookup (zh→en fallback, cached)
 ├── songs/                     # The answer keys — put your CSV(s) here
-├── examples/
-│   └── songs_sample.csv       # Reference data (English oldies)
 ├── web/
 │   ├── index.html           # The matching game
 │   └── analyzer.html        # The singer-fit analyzer
 ├── tests/
 │   ├── test_matching.py
-│   └── test_game.py
+│   ├── test_game.py
+│   └── test_avatars.py
 ├── requirements.txt
 ├── pytest.ini
 └── README.md
@@ -127,12 +133,13 @@ you open `web/index.html` directly from Finder — it talks to the server at
 
 ## API summary
 
-| Method | Path          | Purpose                                             |
-| ------ | ------------- | --------------------------------------------------- |
-| GET    | `/game/board` | Shuffled song titles + singer names (no pairing)     |
-| POST   | `/game/match` | `{song, singer}` → `{correct: true/false}`           |
-| POST   | `/match`      | Analyzer: singer + song profiles → 0–100 match score |
-| GET    | `/health`     | Health check                                         |
+| Method | Path                     | Purpose                                             |
+| ------ | ------------------------ | --------------------------------------------------- |
+| GET    | `/game/board`            | Shuffled song titles + singer names (no pairing)     |
+| POST   | `/game/match`            | `{song, singer}` → `{correct: true/false}`           |
+| POST   | `/match`                 | Analyzer: singer + song profiles → 0–100 match score |
+| GET    | `/singer-image/{name}`   | Redirect to the singer's Wikimedia photo (or 404)    |
+| GET    | `/health`                | Health check                                         |
 
 ## Running tests
 
