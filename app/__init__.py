@@ -1,0 +1,1 @@
+"""Matching-Singer-song application package."""
