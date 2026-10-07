@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matching-Singer-song — Game</title>
+  <style>
+    :root {
+      --bg: #120e1f;
+      --panel: #1e1733;
+      --panel-2: #2a2145;
+      --card-front: #3a2d5c;
+      --accent: #ff6b9d;
+      --accent-2: #ffd166;
+      --green: #4ade80;
+      --text: #f3eefe;
+      --muted: #a99fc4;
+      --border: #392f5a;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 0%, #2a1f47 0%, var(--bg) 55%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* --- floating music-note background --------------------------------- */
+    #notes {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    #notes span {
+      position: absolute;
+      bottom: -10vh;
+      color: rgba(255, 107, 157, 0.14);
+      animation: floatUp linear infinite;
+      user-select: none;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateY(-120vh) rotate(25deg); opacity: 0; }
+    }
+
+    /* --- layout ---------------------------------------------------------- */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 22px 20px 60px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    h1 {
+      font-size: 1.55rem;
+      margin: 0;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .chip {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .chip b { color: var(--text); }
+    #finish-btn {
+      background: linear-gradient(90deg, var(--accent), #ff8fab);
+      color: #2a0d1a;
+      font-weight: 800;
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(255, 107, 157, 0.35);
+    }
+    #finish-btn:hover { filter: brightness(1.06); }
+
+    #reload-btn {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #reload-btn:hover { background: rgba(255, 107, 157, 0.12); }
+
+    #music-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    #music-btn:hover { color: var(--accent-2); border-color: var(--accent-2); }
+
+    /* little equalizer bars, dancing while music plays */
+    #eq {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 18px;
+    }
+    #eq span {
+      width: 4px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--accent);
+    }
+    #eq.playing span { animation: eq 0.8s ease-in-out infinite; }
+    #eq.playing span:nth-child(2) { animation-delay: 0.18s; }
+    #eq.playing span:nth-child(3) { animation-delay: 0.36s; }
+    #eq.playing span:nth-child(4) { animation-delay: 0.54s; }
+    @keyframes eq { 0%, 100% { height: 4px; } 50% { height: 18px; } }
+
+    /* rainbow drift on the title */
+    header h1 {
+      background-size: 200% auto;
+      animation: hueShift 6s linear infinite;
+    }
+    @keyframes hueShift { to { background-position: 200% center; } }
+
+    /* cards bounce in, one after another */
+    .song .card, .singer .card {
+      animation: cardIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.95); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* matched cards keep pulsing green */
+    .card.matched { animation: glowPulse 2.2s ease-in-out infinite; }
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 0 0 2px var(--green), 0 0 18px rgba(74, 222, 128, 0.45); }
+      50%      { box-shadow: 0 0 0 3px var(--green), 0 0 36px rgba(74, 222, 128, 0.8); }
+    }
+
+    /* confetti burst on a correct match */
+    .confetti-piece {
+      position: fixed;
+      top: -14px;
+      z-index: 60;
+      border-radius: 2px;
+      animation: confettiFall linear forwards;
+      pointer-events: none;
+    }
+    @keyframes confettiFall {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(106vh) rotate(560deg); opacity: 0.5; }
+    }
+
+    #status {
+      min-height: 22px;
+      color: var(--accent-2);
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+
+    #warnings {
+      display: none;
+      margin: -4px 0 14px;
+      padding: 10px 14px;
+      background: rgba(255, 209, 102, 0.08);
+      border: 1px dashed rgba(255, 209, 102, 0.4);
+      border-radius: 10px;
+      font-size: 0.8rem;
+      color: var(--accent-2);
+      line-height: 1.5;
+    }
+    #warnings.show { display: block; }
+    #warnings div { margin: 2px 0; }
+
+    #retry-btn {
+      margin: 0 0 14px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 16px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #retry-btn:hover { border-color: var(--accent-2); color: var(--accent-2); }
+
+    .board {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+    .column h2 {
+      font-size: 0.85rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 10px;
+      text-align: center;
+    }
+    .column .cards { display: grid; gap: 12px; }
+
+    /* --- cards ----------------------------------------------------------- */
+    .card {
+      position: relative;
+      min-height: 62px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 0;
+      background: transparent;
+      perspective: 800px;
+      transition: transform 0.15s ease, box-shadow 0.2s ease;
+    }
+
+    /* Song cards flip; singer cards don't. */
+    .song .card { transform-style: preserve-3d; }
+    .song .card .face {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px 14px;
+      border-radius: 14px;
+      backface-visibility: hidden;
+      transition: transform 0.45s cubic-bezier(0.4, 0.1, 0.2, 1);
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .song .card .front {
+      background: linear-gradient(145deg, var(--card-front), #2b2145);
+      color: var(--accent-2);
+      font-size: 1.6rem;
+      transform: rotateY(0deg);
+    }
+    .song .card .back {
+      background: linear-gradient(145deg, #472f6b, #34234f);
+      transform: rotateY(180deg);
+    }
+    .song .card.flipped .front { transform: rotateY(-180deg); }
+    .song .card.flipped .back  { transform: rotateY(0deg); }
+
+    .singer .card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, #24304f, #1b2440);
+      font-weight: 700;
+      padding: 10px 14px;
+    }
+
+    .card:hover { box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.4); }
+
+    .card.selected {
+      box-shadow: 0 0 0 3px var(--accent-2), 0 8px 22px rgba(255, 209, 102, 0.25);
+    }
+
+    /* Matched pairs freeze in place, glowing green. */
+    .card.matched {
+      cursor: default;
+      box-shadow: 0 0 0 2px var(--green), 0 0 22px rgba(74, 222, 128, 0.45);
+      pointer-events: none;
+    }
+    .card.matched .face.front,
+    .card.matched .face.back { background: linear-gradient(145deg, #1f4d33, #173d28); }
+    .card.matched.singer-card-body { background: linear-gradient(145deg, #1f4d33, #173d28); }
+    .card.matched::after {
+      content: "✓";
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--green);
+      color: #0c2216;
+      font-size: 0.8rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-7px); }
+      40% { transform: translateX(7px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+    .shake { animation: shake 0.4s ease; }
+
+    /* --- match popup ----------------------------------------------------- */
+    #match-popup {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      pointer-events: none;
+    }
+    #match-popup.show { display: flex; }
+    .popup-bubble {
+      background: linear-gradient(145deg, #2c1d4a, #3d2a63);
+      border: 2px solid var(--green);
+      border-radius: 22px;
+      padding: 24px 40px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 40px rgba(74, 222, 128, 0.4);
+      animation: pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+    }
+    .popup-bubble .big {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--green);
+      letter-spacing: 0.02em;
+    }
+    .popup-bubble .small { color: var(--muted); margin-top: 8px; font-size: 0.95rem; }
+    @keyframes pop {
+      0% { transform: scale(0.4); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* --- summary overlay ------------------------------------------------- */
+    #summary {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10, 6, 20, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+      padding: 20px;
+    }
+    #summary.show { display: flex; }
+    .summary-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 30px 34px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+    }
+    .summary-card h2 { margin: 0 0 6px; font-size: 1.4rem; color: var(--accent-2); }
+    .summary-card .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 11px 4px;
+      border-bottom: 1px solid var(--border);
+      font-size: 1rem;
+    }
+    .stat-row:last-of-type { border-bottom: 0; }
+    .stat-row b { color: var(--accent-2); }
+    #new-board-btn {
+      margin-top: 22px;
+      width: 100%;
+      background: linear-gradient(90deg, var(--accent), #ff8fab);
+      color: #2a0d1a;
+      font-weight: 800;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 1.05rem;
+      cursor: pointer;
+    }
+    #new-board-btn:hover { filter: brightness(1.06); }
+
+    @media (max-width: 620px) {
+      .board { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="notes" aria-hidden="true"></div>
+
+  <div class="wrap">
+    <header>
+      <h1>🎤 Matching-Singer-song</h1>
+      <div class="meta">
+        <div id="eq" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <div class="chip">Matched <b id="progress">0/0</b></div>
+        <div class="chip">Time <b id="clock">0:00</b></div>
+        <button id="music-btn">🎵 Music</button>
+        <button id="reload-btn" title="Fresh board from the latest songs folder">↻ Reload songs</button>
+        <button id="finish-btn">⏹ Game Finish</button>
+      </div>
+    </header>
+
+    <div id="status">Pick a song card on the left, then a singer on the right. 🎵</div>
+    <div id="warnings" aria-live="polite"></div>
+    <button id="retry-btn" hidden>🔄 Reload board</button>
+
+    <div class="board">
+      <section class="column song">
+        <h2>♪ Songs</h2>
+        <div class="cards" id="song-column"></div>
+      </section>
+      <section class="column singer">
+        <h2>🎙️ Singers</h2>
+        <div class="cards" id="singer-column"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="match-popup" aria-live="polite">
+    <div class="popup-bubble">
+      <div class="big">Match! 🎶</div>
+      <div class="small" id="match-detail"></div>
+    </div>
+  </div>
+
+  <div id="summary">
+    <div class="summary-card">
+      <h2 id="summary-title">Round complete!</h2>
+      <div class="sub" id="summary-sub">Here's how it went.</div>
+      <div class="stat-row"><span>Pairs matched</span><b id="sum-matched">0</b></div>
+      <div class="stat-row"><span>Score (first try)</span><b id="sum-score">0</b></div>
+      <div class="stat-row"><span>Total attempts</span><b id="sum-attempts">0</b></div>
+      <div class="stat-row"><span>Time</span><b id="sum-time">0:00</b></div>
+      <button id="new-board-btn">🎲 Start a new board</button>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    // The game talks to the local server. An absolute URL means the page also
+    // works when opened straight from your file system (double-clicked) —
+    // the server just needs to be running (see Start-Game.command).
+    const API_BASE = "http://127.0.0.1:8000";
+
+    // --- floating music notes ------------------------------------------------
+    (function buildNotes() {
+      const chars = ["♪", "♫", "♬", "𝄞", "🎵", "🎶"];
+      const layer = $("notes");
+      for (let i = 0; i < 26; i++) {
+        const note = document.createElement("span");
+        note.textContent = chars[Math.floor(Math.random() * chars.length)];
+        note.style.left = Math.random() * 100 + "vw";
+        note.style.fontSize = (14 + Math.random() * 34) + "px";
+        note.style.animationDuration = (12 + Math.random() * 16) + "s";
+        note.style.animationDelay = (-Math.random() * 20) + "s";
+        layer.appendChild(note);
+      }
+    })();
+
+    // --- state ---------------------------------------------------------------
+    let board = null;
+    let selected = null;        // { card, song }
+    let matchedCount = 0;
+    let attempts = 0;
+    let firstTry = 0;
+    const attempted = new Set();
+    let locked = false;
+    let seconds = 0;
+    let timerId = null;
+    let popupTimer = null;
+
+    function status(text) { $("status").textContent = text; }
+
+    // --- light background music (synthesized live — no files, no copyright) --
+    let audioCtx = null;
+    let musicGain = null;
+    let musicTimer = null;
+    let musicOn = false;
+    let musicStep = 0;
+
+    const CHORDS = [
+      [60, 64, 67],   // C  major
+      [57, 60, 64],   // A minor
+      [53, 57, 60],   // F  major
+      [55, 59, 62],   // G  major
+    ];
+
+    function midiFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+    function tone(midi, dur, type, vol) {
+      if (!audioCtx) return;
+      const t0 = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      osc.type = type || "triangle";
+      osc.frequency.value = midiFreq(midi);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(vol || 0.8, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g);
+      g.connect(musicGain);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.05);
+    }
+
+    // One gentle music-box note every 320 ms, arpeggiating a slow chord loop.
+    function musicTick() {
+      const chord = CHORDS[Math.floor(musicStep / 8) % CHORDS.length];
+      const note = chord[musicStep % 3] + (Math.floor(musicStep / 3) % 2 ? 12 : 0);
+      tone(note, 1.0, "triangle", 0.8);
+      if (musicStep % 12 === 0) tone(chord[0] - 12, 1.8, "sine", 0.5); // soft bass
+      musicStep++;
+    }
+
+    function startMusic() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        musicGain = audioCtx.createGain();
+        musicGain.gain.value = 0.05; // light touch
+        musicGain.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      if (musicTimer) clearInterval(musicTimer);
+      musicStep = 0;
+      musicTimer = setInterval(musicTick, 320);
+      musicOn = true;
+      $("music-btn").textContent = "🔇 Music off";
+      $("eq").classList.add("playing");
+    }
+
+    function stopMusic() {
+      if (musicTimer) clearInterval(musicTimer);
+      musicTimer = null;
+      musicOn = false;
+      $("music-btn").textContent = "🎵 Music";
+      $("eq").classList.remove("playing");
+    }
+
+    // A happy little "ding" when a pair matches.
+    function playDing() {
+      if (!audioCtx) return;
+      tone(88, 0.35, "triangle", 1);
+      setTimeout(() => tone(93, 0.6, "triangle", 1), 90);
+    }
+
+    // --- confetti burst ------------------------------------------------------
+    function confetti() {
+      const colors = ["#ff6b9d", "#ffd166", "#4ade80", "#a55eea", "#45aaf2", "#ff9f43"];
+      for (let i = 0; i < 36; i++) {
+        const piece = document.createElement("div");
+        piece.className = "confetti-piece";
+        piece.style.left = Math.random() * 100 + "vw";
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.width = piece.style.height = (6 + Math.random() * 6) + "px";
+        piece.style.animationDuration = (0.9 + Math.random() * 1.2) + "s";
+        piece.style.animationDelay = (Math.random() * 0.4) + "s";
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), 2800);
+      }
+    }
+
+    function fmt(secs) {
+      const m = Math.floor(secs / 60);
+      const s = String(secs % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function startTimer() {
+      stopTimer();
+      seconds = 0;
+      $("clock").textContent = "0:00";
+      timerId = setInterval(() => {
+        seconds++;
+        $("clock").textContent = fmt(seconds);
+      }, 1000);
+    }
+    function stopTimer() { if (timerId) clearInterval(timerId); timerId = null; }
+
+    function updateProgress() {
+      $("progress").textContent = `${matchedCount}/${board ? board.size : 0}`;
+    }
+
+    // --- board rendering -----------------------------------------------------
+    async function newBoard() {
+      hideSummary();
+      stopTimer();
+      $("retry-btn").hidden = true;
+      selected = null;
+      matchedCount = 0;
+      attempts = 0;
+      firstTry = 0;
+      attempted.clear();
+      locked = false;
+
+      let data;
+      try {
+        const res = await fetch(API_BASE + "/game/board");
+        if (!res.ok) throw new Error(await res.text());
+        data = await res.json();
+      } catch (err) {
+        status("Could not load the board: " + err.message);
+        $("retry-btn").hidden = false;
+        return;
+      }
+
+      board = data;
+
+      const warnings = $("warnings");
+      warnings.innerHTML = "";
+      if (board.warnings && board.warnings.length) {
+        board.warnings.forEach((w) => {
+          const line = document.createElement("div");
+          line.textContent = "⚠ " + w;
+          warnings.appendChild(line);
+        });
+        warnings.classList.add("show");
+      } else {
+        warnings.classList.remove("show");
+      }
+
+      const songCol = $("song-column");
+      const singerCol = $("singer-column");
+      songCol.innerHTML = "";
+      singerCol.innerHTML = "";
+
+      board.songs.forEach((song, index) => {
+        const card = document.createElement("button");
+        card.className = "card";
+        card.style.animationDelay = (index * 0.04) + "s";
+        card.innerHTML =
+          '<div class="face front"></div>' +
+          '<div class="face back"></div>';
+        card.querySelector(".front").textContent = index + 1;
+        card.querySelector(".back").textContent = song;
+        card.addEventListener("click", () => onSongClick(card, song));
+        songCol.appendChild(card);
+      });
+
+      board.singers.forEach((singer, index) => {
+        const card = document.createElement("button");
+        card.className = "card singer-card-body";
+        card.style.animationDelay = (index * 0.04) + "s";
+        card.textContent = singer;
+        card.addEventListener("click", () => onSingerClick(card, singer));
+        singerCol.appendChild(card);
+      });
+
+      updateProgress();
+      startTimer();
+      status(
+        `Round: ${board.size} random song${board.size === 1 ? "" : "s"} of ${board.available}`
+        + ` — pick a song card, then a singer. 🎵`
+      );
+    }
+
+    // --- interactions --------------------------------------------------------
+    function onSongClick(card, song) {
+      if (locked || card.classList.contains("matched")) return;
+
+      if (selected && selected.card === card) {
+        // Tapping the open song again closes it.
+        card.classList.remove("flipped", "selected");
+        selected = null;
+        return;
+      }
+      if (selected) {
+        selected.card.classList.remove("flipped", "selected");
+      }
+      card.classList.add("flipped", "selected");
+      selected = { card, song };
+      status(`Now choose the singer for “${song}”.`);
+    }
+
+    function onSingerClick(card, singer) {
+      if (locked || card.classList.contains("matched")) return;
+      if (!selected) {
+        card.classList.add("shake");
+        setTimeout(() => card.classList.remove("shake"), 400);
+        status("Pick a song card first. 🎵");
+        return;
+      }
+
+      const { card: songCard, song } = selected;
+      const songAlreadyTried = attempted.has(song);
+      attempts++;
+      attempted.add(song);
+      locked = true;
+
+      fetch(API_BASE + "/game/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ song, singer }),
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error(await res.text());
+          return res.json();
+        })
+        .then((data) => {
+          if (data.correct) {
+            if (!songAlreadyTried) firstTry++;
+            freeze(songCard);
+            freeze(card);
+            matchedCount++;
+            updateProgress();
+            showMatchPopup(song, singer);
+            confetti();
+            playDing();
+            selected = null;
+            status(`“${song}” matched with ${singer}. 🎉`);
+            if (matchedCount === board.size) {
+              status("All songs matched! Press ⏹ Game Finish for a new board. 🎊");
+              stopTimer();
+            }
+          } else {
+            songCard.classList.add("shake");
+            card.classList.add("shake");
+            setTimeout(() => {
+              songCard.classList.remove("shake");
+              card.classList.remove("shake");
+              songCard.classList.remove("flipped", "selected");
+              selected = null;
+            }, 650);
+            status(`“${song}” isn't by ${singer}. Try another singer.`);
+          }
+        })
+        .catch((err) => status("Match check failed: " + err.message))
+        .finally(() => { locked = false; });
+    }
+
+    function freeze(card) {
+      card.style.animationDelay = "0s";
+      card.classList.add("matched");
+      card.classList.remove("flipped", "selected");
+    }
+
+    function showMatchPopup(song, singer) {
+      $("match-detail").textContent = `${song}  ×  ${singer}`;
+      const popup = $("match-popup");
+      popup.classList.add("show");
+      clearTimeout(popupTimer);
+      popupTimer = setTimeout(() => popup.classList.remove("show"), 1400);
+    }
+
+    // --- summary / game finish ----------------------------------------------
+    function showSummary() {
+      stopTimer();
+      const all = board ? matchedCount === board.size : false;
+      $("summary-title").textContent = all ? "🎊 Round complete!" : "Round ended";
+      $("summary-sub").textContent = all
+        ? "You matched every song. Nicely done!"
+        : "The host ended this round early.";
+      $("sum-matched").textContent = `${matchedCount}/${board ? board.size : 0}`;
+      $("sum-score").textContent = firstTry;
+      $("sum-attempts").textContent = attempts;
+      $("sum-time").textContent = fmt(seconds);
+      $("summary").classList.add("show");
+    }
+    function hideSummary() { $("summary").classList.remove("show"); }
+
+    $("finish-btn").addEventListener("click", showSummary);
+    $("new-board-btn").addEventListener("click", newBoard);
+    $("retry-btn").addEventListener("click", newBoard);
+    $("reload-btn").addEventListener("click", newBoard);
+    $("music-btn").addEventListener("click", () => musicOn ? stopMusic() : startMusic());
+
+    // Browsers block sound until the first click — start softly on that click.
+    document.addEventListener("pointerdown", () => startMusic(), { once: true });
+
+    newBoard();
+  </script>
+</body>
+</html>

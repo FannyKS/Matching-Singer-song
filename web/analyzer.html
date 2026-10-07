@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matching-Singer-song</title>
+  <style>
+    :root {
+      --bg: #12131a;
+      --panel: #1d1f2b;
+      --panel-2: #262938;
+      --text: #e8eaf2;
+      --muted: #9aa0b4;
+      --accent: #ff6b81;
+      --accent-2: #ffd93d;
+      --green: #4cd964;
+      --border: #33374a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 20% -10%, #2a2438 0%, var(--bg) 55%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 64px;
+    }
+
+    header { text-align: center; margin-bottom: 28px; }
+    header h1 {
+      margin: 0;
+      font-size: 2.1rem;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    header p { color: var(--muted); margin: 8px 0 0; }
+
+    .board {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+      max-width: 860px;
+    }
+
+    @media (max-width: 720px) { .board { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 22px;
+    }
+    .card h2 {
+      margin: 0 0 16px;
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .card.song h2 { color: var(--accent-2); }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 12px 0 4px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 9px 12px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .slider-row output {
+      min-width: 26px;
+      text-align: center;
+      font-weight: 700;
+      color: var(--accent-2);
+    }
+    input[type="range"] { flex: 1; accent-color: var(--accent); }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .actions { margin-top: 20px; display: flex; gap: 12px; justify-content: center; }
+
+    button {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 13px 34px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.1s ease, filter 0.2s ease;
+    }
+    button:hover { filter: brightness(1.1); }
+    button:active { transform: scale(0.97); }
+    button.secondary {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 10px 18px;
+    }
+
+    .result {
+      display: none;
+      width: 100%;
+      max-width: 860px;
+      margin-top: 24px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 26px;
+    }
+    .result.show { display: block; }
+    .result.error { border-color: var(--accent); }
+
+    .score-line { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .big-score {
+      font-size: 3.4rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .big-score.good { color: var(--green); }
+    .big-score.mid { color: var(--accent-2); }
+    .big-score.bad { color: var(--accent); }
+
+    .verdict {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+    .pairing { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+    .bars { margin-top: 18px; display: grid; gap: 12px; }
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .bar {
+      height: 10px;
+      background: var(--panel-2);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar > div {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+    .bar.range > div { background: linear-gradient(90deg, var(--accent), #ff9f43); }
+    .bar.style > div { background: linear-gradient(90deg, #a55eea, var(--accent-2)); }
+    .bar.energy > div { background: linear-gradient(90deg, #45aaf2, var(--green)); }
+
+    .note { color: var(--muted); font-size: 0.8rem; margin-top: 8px; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎤 Matching-Singer-song</h1>
+    <p>How well does this singer fit this song?</p>
+  </header>
+
+  <div class="board">
+    <section class="card">
+      <h2>Singer</h2>
+      <label for="singer-name">Name</label>
+      <input type="text" id="singer-name" value="Mary J.">
+
+      <div class="row-2">
+        <div>
+          <label for="singer-low">Range low (e.g. C3)</label>
+          <input type="text" id="singer-low" value="C3">
+        </div>
+        <div>
+          <label for="singer-high">Range high (e.g. C6)</label>
+          <input type="text" id="singer-high" value="C6">
+        </div>
+      </div>
+
+      <label for="singer-style">Vocal style (pop, rock, jazz, opera, R&amp;B…)</label>
+      <input type="text" id="singer-style" value="pop">
+
+      <label for="singer-energy">Energy&nbsp;&nbsp;<output id="singer-energy-out">5</output>/10</label>
+      <div class="slider-row">
+        <input type="range" id="singer-energy" min="1" max="10" value="5">
+      </div>
+    </section>
+
+    <section class="card song">
+      <h2>Song</h2>
+      <label for="song-title">Title</label>
+      <input type="text" id="song-title" value="Time After Time">
+
+      <label for="song-genre">Genre</label>
+      <input type="text" id="song-genre" value="pop">
+
+      <div class="row-2">
+        <div>
+          <label for="song-low">Required low (e.g. G3)</label>
+          <input type="text" id="song-low" value="G3">
+        </div>
+        <div>
+          <label for="song-high">Required high (e.g. E5)</label>
+          <input type="text" id="song-high" value="E5">
+        </div>
+      </div>
+
+      <label for="song-energy">Energy&nbsp;&nbsp;<output id="song-energy-out">5</output>/10</label>
+      <div class="slider-row">
+        <input type="range" id="song-energy" min="1" max="10" value="5">
+      </div>
+    </section>
+  </div>
+
+  <div class="actions">
+    <button id="match-btn">Match!</button>
+    <button class="secondary" id="reset-btn">Reset example</button>
+  </div>
+
+  <div class="result" id="result">
+    <div class="score-line">
+      <div class="big-score" id="score">–</div>
+      <div>
+        <div class="verdict" id="verdict">–</div>
+        <div class="pairing" id="pairing">–</div>
+      </div>
+    </div>
+    <div class="bars">
+      <div>
+        <div class="bar-label"><span>Range fit</span><span id="range-val">0</span></div>
+        <div class="bar range"><div id="range-bar"></div></div>
+      </div>
+      <div>
+        <div class="bar-label"><span>Style fit</span><span id="style-val">0</span></div>
+        <div class="bar style"><div id="style-bar"></div></div>
+      </div>
+      <div>
+        <div class="bar-label"><span>Energy fit</span><span id="energy-val">0</span></div>
+        <div class="bar energy"><div id="energy-bar"></div></div>
+      </div>
+    </div>
+    <p class="note" id="note"></p>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    // Keep the little energy labels in sync with the sliders.
+    $("singer-energy").addEventListener("input", () => {
+      $("singer-energy-out").textContent = $("singer-energy").value;
+    });
+    $("song-energy").addEventListener("input", () => {
+      $("song-energy-out").textContent = $("song-energy").value;
+    });
+
+    const NOTE_RE = /^[A-Ga-g][#b]?-?\d$/;
+
+    function readForm() {
+      return {
+        singer: {
+          name: $("singer-name").value.trim(),
+          vocal_range_low: $("singer-low").value.trim(),
+          vocal_range_high: $("singer-high").value.trim(),
+          vocal_style: $("singer-style").value.trim(),
+          energy: Number($("singer-energy").value),
+        },
+        song: {
+          title: $("song-title").value.trim(),
+          genre: $("song-genre").value.trim(),
+          required_range_low: $("song-low").value.trim(),
+          required_range_high: $("song-high").value.trim(),
+          energy: Number($("song-energy").value),
+        },
+      };
+    }
+
+    function highlight(input, valid) {
+      input.style.borderColor = valid ? "" : "#ff6b81";
+    }
+
+    // Remove the highlight again as soon as the user types.
+    document.querySelectorAll("input[type=text]").forEach((input) => {
+      input.addEventListener("input", () => { input.style.borderColor = ""; });
+    });
+
+    function showScore(payload, data) {
+      const result = $("result");
+      result.classList.add("show");
+      result.classList.remove("error");
+
+      const score = data.overall_score;
+      const scoreEl = $("score");
+      scoreEl.textContent = score + "%";
+      scoreEl.className = "big-score " + (score >= 75 ? "good" : score >= 45 ? "mid" : "bad");
+
+      $("verdict").textContent = data.verdict;
+      $("pairing").textContent = `${data.singer} × “${data.song}”`;
+
+      const bars = [
+        ["range", data.breakdown.range_fit],
+        ["style", data.breakdown.style_fit],
+        ["energy", data.breakdown.energy_fit],
+      ];
+      bars.forEach(([key, value]) => {
+        $(`${key}-val`).textContent = Math.round(value);
+        $(`${key}-bar`).style.width = value + "%";
+      });
+
+      $("note").textContent = score >= 75
+        ? "A natural fit — book the studio. 🎙️"
+        : score >= 45
+        ? "Workable, but not ideal. Try adjusting the criteria and match again."
+        : "Not a good fit — keep searching. 🔍";
+    }
+
+    function showError(message) {
+      const result = $("result");
+      result.classList.add("show", "error");
+      $("verdict").textContent = "Something went wrong";
+      $("pairing").textContent = message;
+      $("score").textContent = "–";
+      ["range", "style", "energy"].forEach((key) => {
+        $(`${key}-val`).textContent = "0";
+        $(`${key}-bar`).style.width = "0%";
+      });
+      $("note").textContent = "";
+    }
+
+    async function match() {
+      const payload = readForm();
+
+      // Quick client-side check so the user gets fast feedback.
+      let badNote = null;
+      [["singer-low", payload.singer.vocal_range_low],
+       ["singer-high", payload.singer.vocal_range_high],
+       ["song-low", payload.song.required_range_low],
+       ["song-high", payload.song.required_range_high]].forEach(([id, note]) => {
+        const valid = NOTE_RE.test(note);
+        highlight($(id), valid);
+        if (!valid) badNote = `${id}: "${note}" is not a valid note (e.g. C4, Bb3)`;
+      });
+      if (badNote) { showError(badNote); return; }
+
+      try {
+        const response = await fetch("/match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const detail = await response.json().then((d) => JSON.stringify(d.detail) || response.statusText);
+          throw new Error(detail);
+        }
+        showScore(payload, await response.json());
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function resetExample() {
+      $("singer-name").value = "Mary J.";
+      $("singer-low").value = "C3";
+      $("singer-high").value = "C6";
+      $("singer-style").value = "pop";
+      $("singer-energy").value = 5;
+      $("singer-energy-out").textContent = "5";
+
+      $("song-title").value = "Time After Time";
+      $("song-genre").value = "pop";
+      $("song-low").value = "G3";
+      $("song-high").value = "E5";
+      $("song-energy").value = 5;
+      $("song-energy-out").textContent = "5";
+    }
+
+    $("match-btn").addEventListener("click", match);
+    $("reset-btn").addEventListener("click", resetExample);
+  </script>
+</body>
+</html>

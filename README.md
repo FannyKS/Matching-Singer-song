@@ -1,30 +1,94 @@
 # Matching-Singer-song
 
-Rates how well a singer fits a song — the **Olddies** song-matching tool.
+The **Olddies** singing toolbox — two things in one FastAPI app:
 
-A FastAPI service that takes a singer profile and a song profile and returns a
-0–100 match score with a breakdown of three components:
+1. 🎮 **Matching game** — a host-controlled board where players match face-down
+   song cards to the singer who performs them.
+2. 🎯 **Analyzer** — score how well a singer profile fits a song (range, style, energy).
 
-| Component  | Weight | What it measures                                      |
-| ---------- | ------ | ----------------------------------------------------- |
+## The matching game
+
+- **Left column** — song cards, face down (flip one to reveal the title).
+- **Right column** — singer names, face up. A singer who performs several songs
+  appears once per song.
+- Pick a song, then pick a singer. A correct pair triggers a **"Match!"** popup
+  with a confetti burst, and the pair stays frozen on the board with a green glow.
+- **↻ Reload songs** — the host presses this after adding/editing/deleting songs
+  in `songs/` to pull a fresh board immediately.
+- **🎵 Music** — light synthesized background music (built into the page — no
+  audio files, no copyright). Toggle it on/off anytime.
+- Songs are **randomly selected** — 10 per round — from every CSV in the
+  `songs/` folder.
+- Press **⏹ Game Finish** to end the round: you get a summary (pairs, first-try
+  score, attempts, time) and a button to start a **new board**.
+
+The correct song→singer pairs are checked **server-side**, so the answer key is
+never exposed to the browser.
+
+### Editing the songs
+
+Put your answer keys in the **`songs/` folder** — every `*.csv` there is read
+and merged. Each file has two columns, `song,singer` (a header row is fine):
+
+```csv
+song,singer
+紙船,許冠傑
+鼓舞,陳百強
+Crazy,Patsy Cline
+```
+
+Rules:
+
+- Song titles must be unique across the folder (conflicting repeats are ignored
+  with a warning).
+- A singer may have any number of songs — they get that many cards on the board.
+- Songs **without a singer** are skipped (with a warning on screen), so you can
+  fill your spreadsheet in gradually.
+- Quote any title containing a comma, e.g. `"Hello, Dolly!",Louis Armstrong`.
+- Files saved by Excel (UTF-8 BOM, Big5, GB2312, CRLF line endings…) are decoded
+  automatically — a fresh export from Excel "just works".
+- Everything is re-read on every new board, so edits show up on the next
+  Game Finish without restarting the server.
+
+A small example file lives at `examples/songs_sample.csv` if you want a
+reference.
+
+## The analyzer
+
+`POST /match` takes a singer profile and a song profile and returns a 0–100 score:
+
+| Component  | Weight | What it measures                                              |
+| ---------- | ------ | ------------------------------------------------------------- |
 | Range fit  | 50%    | How much of the song's required pitch range the singer covers |
 | Style fit  | 30%    | How well the singer's vocal style matches the song's genre    |
 | Energy fit | 20%    | How close the singer's energy (1–10) is to the song's         |
+
+Notes use [scientific pitch notation](https://en.wikipedia.org/wiki/Scientific_pitch_notation),
+e.g. `C4` (middle C); `#`/`b` accidentals like `F#5` or `Bb2` are supported.
 
 ## Project layout
 
 ```
 .
 ├── app/
-│   ├── main.py              # FastAPI app and meta endpoints
+│   ├── main.py              # FastAPI app, page routes, meta endpoints
 │   ├── schemas.py           # Pydantic request/response models
 │   ├── routers/
-│   │   └── matching.py      # POST /match endpoint
+│   │   ├── matching.py      # POST /match (analyzer)
+│   │   └── game.py          # GET /game/board, POST /game/match
 │   └── services/
 │       ├── notes.py         # Note → semitone conversion
-│       └── matcher.py       # Scoring engine
+│       ├── matcher.py       # Analyzer scoring engine
+│       └── game.py          # Answer-key loading + board sampling
+├── songs/                     # The answer keys — put your CSV(s) here
+├── examples/
+│   └── songs_sample.csv       # Reference data (English oldies)
+├── web/
+│   ├── index.html           # The matching game
+│   └── analyzer.html        # The singer-fit analyzer
 ├── tests/
-│   └── test_matching.py
+│   ├── test_matching.py
+│   └── test_game.py
 ├── requirements.txt
 ├── pytest.ini
 └── README.md
@@ -42,47 +106,33 @@ source .venv/bin/activate
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Run the API (http://127.0.0.1:8000, interactive docs at /docs)
+# 3. Run the app
 uvicorn app.main:app --reload
 ```
 
-## Example request
+Then open:
 
-```bash
-curl -X POST http://127.0.0.1:8000/match \
-  -H "Content-Type: application/json" \
-  -d '{
-    "singer": {
-      "name": "Mary J.",
-      "vocal_range_low": "C3",
-      "vocal_range_high": "C6",
-      "vocal_style": "pop",
-      "energy": 5
-    },
-    "song": {
-      "title": "Time After Time",
-      "genre": "pop",
-      "required_range_low": "G3",
-      "required_range_high": "E5",
-      "energy": 5
-    }
-  }'
-```
+| URL                            | What                              |
+| ------------------------------ | --------------------------------- |
+| http://127.0.0.1:8000/game     | 🎮 the matching game              |
+| http://127.0.0.1:8000/analyzer | 🎯 the singer-fit analyzer        |
+| http://127.0.0.1:8000/docs     | interactive API docs              |
 
-Example response:
+### No typing required 🎉
 
-```json
-{
-  "singer": "Mary J.",
-  "song": "Time After Time",
-  "overall_score": 100.0,
-  "verdict": "Excellent match",
-  "breakdown": { "range_fit": 100.0, "style_fit": 100.0, "energy_fit": 100.0 }
-}
-```
+Double-click **`Start-Game.command`** (macOS): it starts the server if needed
+and opens the game in your browser automatically. The game page also works if
+you open `web/index.html` directly from Finder — it talks to the server at
+`http://127.0.0.1:8000` on its own (the server just needs to be running).
 
-Notes use [scientific pitch notation](https://en.wikipedia.org/wiki/Scientific_pitch_notation),
-e.g. `C4` (middle C), with `#`/`b` accidentals like `F#5` or `Bb2` supported.
+## API summary
+
+| Method | Path          | Purpose                                             |
+| ------ | ------------- | --------------------------------------------------- |
+| GET    | `/game/board` | Shuffled song titles + singer names (no pairing)     |
+| POST   | `/game/match` | `{song, singer}` → `{correct: true/false}`           |
+| POST   | `/match`      | Analyzer: singer + song profiles → 0–100 match score |
+| GET    | `/health`     | Health check                                         |
 
 ## Running tests
 

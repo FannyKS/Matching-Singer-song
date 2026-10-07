@@ -70,3 +70,30 @@ class MatchResult(BaseModel):
     overall_score: float
     verdict: str
     breakdown: MatchBreakdown
+
+
+# --- game models ------------------------------------------------------------
+
+class GameBoard(BaseModel):
+    """A shuffled round of song titles (left column) and singer names (right).
+
+    The song → singer pairing is intentionally NOT included: the answer key
+    stays server-side so the board can't be peeked at in the browser.
+    """
+
+    songs: list[str]
+    singers: list[str]
+    size: int
+    available: int = 0
+    warnings: list[str] = []
+
+
+class MatchAttempt(BaseModel):
+    song: str = Field(min_length=1)
+    singer: str = Field(min_length=1)
+
+
+class MatchCheck(BaseModel):
+    song: str
+    singer: str
+    correct: bool
