@@ -268,6 +268,8 @@
     .song .card .back {
       background: linear-gradient(145deg, #472f6b, #34234f);
       transform: rotateY(180deg);
+      font-size: 1.15rem;
+      line-height: 1.3;
     }
     .song .card.flipped .front { transform: rotateY(-180deg); }
     .song .card.flipped .back  { transform: rotateY(0deg); }
@@ -444,9 +446,14 @@
       gap: 12px;
     }
     .board.layout-stage .column.song .card {
-      width: 148px;
-      min-height: 86px;
+      width: 180px;
+      min-height: 112px;
       flex: 0 0 auto;
+    }
+    /* Bigger song cards + titles on the stage board. */
+    .board.layout-stage .column.song .card .back {
+      font-size: 1.25rem;
+      padding: 14px 18px;
     }
     .board.layout-stage .column.singer .card {
       width: 148px;
