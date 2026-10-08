@@ -59,7 +59,7 @@
       z-index: 1;
       max-width: 1000px;
       margin: 0 auto;
-      padding: 22px 20px 60px;
+      padding: 12px 20px 60px;
     }
 
     header {
@@ -67,11 +67,11 @@
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 14px;
-      margin-bottom: 18px;
+      gap: 10px;
+      margin-bottom: 10px;
     }
     h1 {
-      font-size: 1.55rem;
+      font-size: 1.3rem;
       margin: 0;
       background: linear-gradient(90deg, var(--accent), var(--accent-2));
       -webkit-background-clip: text;
@@ -83,8 +83,8 @@
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 999px;
-      padding: 7px 14px;
-      font-size: 0.9rem;
+      padding: 4px 11px;
+      font-size: 0.8rem;
       color: var(--muted);
     }
     .chip b { color: var(--text); }
@@ -94,8 +94,8 @@
       font-weight: 800;
       border: 0;
       border-radius: 999px;
-      padding: 10px 20px;
-      font-size: 0.95rem;
+      padding: 7px 15px;
+      font-size: 0.86rem;
       cursor: pointer;
       box-shadow: 0 6px 18px rgba(255, 107, 157, 0.35);
     }
@@ -107,8 +107,8 @@
       color: var(--accent);
       font-weight: 700;
       border-radius: 999px;
-      padding: 10px 18px;
-      font-size: 0.9rem;
+      padding: 7px 13px;
+      font-size: 0.84rem;
       cursor: pointer;
     }
     #reload-btn:hover { background: rgba(255, 107, 157, 0.12); }
@@ -118,8 +118,8 @@
       border: 1px solid var(--border);
       color: var(--muted);
       border-radius: 999px;
-      padding: 10px 16px;
-      font-size: 0.85rem;
+      padding: 7px 12px;
+      font-size: 0.82rem;
       cursor: pointer;
     }
     #music-btn:hover { color: var(--accent-2); border-color: var(--accent-2); }
@@ -129,8 +129,8 @@
       border: 1px solid var(--border);
       color: var(--muted);
       border-radius: 999px;
-      padding: 10px 16px;
-      font-size: 0.85rem;
+      padding: 7px 12px;
+      font-size: 0.82rem;
       cursor: pointer;
       text-decoration: none;
     }
@@ -193,10 +193,10 @@
     }
 
     #status {
-      min-height: 22px;
+      min-height: 18px;
       color: var(--accent-2);
-      font-size: 0.95rem;
-      margin-bottom: 12px;
+      font-size: 0.88rem;
+      margin-bottom: 8px;
     }
 
     #warnings {
@@ -231,11 +231,11 @@
       gap: 22px;
     }
     .column h2 {
-      font-size: 0.85rem;
+      font-size: 0.76rem;
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--muted);
-      margin: 0 0 10px;
+      margin: 0 0 6px;
       text-align: center;
     }
     .column .cards { display: grid; gap: 12px; }
@@ -416,6 +416,35 @@
     }
     #new-board-btn:hover { filter: brightness(1.06); }
 
+    .summary-switch {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .switch-label {
+      display: block;
+      font-size: 0.76rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .switch-options { display: flex; gap: 10px; }
+    .lvl-btn {
+      flex: 1;
+      display: block;
+      text-align: center;
+      text-decoration: none;
+      border-radius: 12px;
+      padding: 11px 10px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      transition: filter 0.15s ease;
+    }
+    .lvl-btn:hover { filter: brightness(1.08); }
+    .lvl-btn.easy { background: linear-gradient(90deg, #4ade80, #22c55e); color: #06210f; }
+    .lvl-btn.advance { background: linear-gradient(90deg, var(--accent), #ff8fab); color: #2a0d1a; }
+
     @media (max-width: 620px) {
       .board { grid-template-columns: 1fr; }
     }
@@ -426,8 +455,8 @@
       border: 1px dashed var(--accent-2);
       color: var(--accent-2);
       border-radius: 999px;
-      padding: 10px 16px;
-      font-size: 0.85rem;
+      padding: 7px 12px;
+      font-size: 0.82rem;
       cursor: pointer;
     }
     #layout-btn:hover { background: rgba(255, 209, 102, 0.1); }
@@ -553,17 +582,6 @@
       width: 180px;
       min-height: 138px;
     }
-    /* A 15-song Advance round: tighten the tiles a touch so it stays airy. */
-    .board[data-count="15"][data-level="advance"] .column .cards { gap: 10px; }
-    .board[data-count="15"][data-level="advance"] .column.song .card {
-      width: 150px;
-      min-height: 96px;
-    }
-    .board[data-count="15"][data-level="advance"] .column.singer .card,
-    .board.layout-stage[data-count="15"][data-level="advance"] .column.singer .card {
-      width: 150px;
-      min-height: 120px;
-    }
   </style>
 </head>
 <body>
@@ -617,7 +635,14 @@
       <div class="stat-row"><span>Score (first try)</span><b id="sum-score">0</b></div>
       <div class="stat-row"><span>Total attempts</span><b id="sum-attempts">0</b></div>
       <div class="stat-row"><span>Time</span><b id="sum-time">0:00</b></div>
-      <button id="new-board-btn">🎲 Start a new board</button>
+      <button id="new-board-btn">🎲 New board — same level</button>
+      <div class="summary-switch">
+        <span class="switch-label">Switch level</span>
+        <div class="switch-options">
+          <a class="lvl-btn easy" href="http://127.0.0.1:8000/game">🌱 Easy</a>
+          <a class="lvl-btn advance" href="http://127.0.0.1:8000/game?level=advance">⚡ Advance</a>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -857,7 +882,7 @@
 
       let data;
       try {
-        const size = IS_ADVANCE ? 15 : 10;
+        const size = IS_ADVANCE ? 12 : 10;
         const res = await fetch(API_BASE + "/game/board?size=" + size);
         if (!res.ok) throw new Error(await res.text());
         data = await res.json();
