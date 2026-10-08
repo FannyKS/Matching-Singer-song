@@ -686,20 +686,63 @@
       ? "advance" : "easy";
     const IS_ADVANCE = LEVEL === "advance";
 
-    // --- floating music notes ------------------------------------------------
-    (function buildNotes() {
-      const chars = ["♪", "♫", "♬", "𝄞", "🎵", "🎶"];
+    // --- floating music-note background (a fresh theme per round) ----------------
+    const BG_THEMES = [
+      {
+        name: "violet",
+        glyphs: ["♪", "♫", "♬", "𝄞", "🎵", "🎶"],
+        color: "rgba(255, 107, 157, 0.16)",
+        background: "radial-gradient(circle at 20% 0%, #2a1f47 0%, #120e1f 55%)",
+      },
+      {
+        name: "gold",
+        glyphs: ["♪", "♩", "♫", "♬"],
+        color: "rgba(255, 209, 102, 0.18)",
+        background: "radial-gradient(circle at 20% 0%, #2f2433 0%, #151020 55%)",
+      },
+      {
+        name: "aqua",
+        glyphs: ["♪", "♫", "𝄞", "🎶"],
+        color: "rgba(94, 234, 212, 0.15)",
+        background: "radial-gradient(circle at 20% 0%, #1d2f3d 0%, #0e1422 55%)",
+      },
+      {
+        name: "rose",
+        glyphs: ["♬", "♩", "♪", "🎵", "🎶"],
+        color: "rgba(255, 138, 171, 0.17)",
+        background: "radial-gradient(circle at 20% 0%, #362139 0%, #150f1e 55%)",
+      },
+      {
+        name: "emerald",
+        glyphs: ["♫", "𝄞", "♩", "♪"],
+        color: "rgba(74, 222, 128, 0.15)",
+        background: "radial-gradient(circle at 20% 0%, #1e3a2c 0%, #0e1a12 55%)",
+      },
+    ];
+
+    // Never repeat the previous theme: step forward 1..(n-1) places.
+    let themeIndex = -1;
+    function applyBackgroundTheme() {
+      const theme = BG_THEMES[
+        (themeIndex + 1 + Math.floor(Math.random() * (BG_THEMES.length - 1)))
+        % BG_THEMES.length
+      ];
+      themeIndex = BG_THEMES.indexOf(theme);
+
+      document.body.style.background = theme.background;
       const layer = $("notes");
+      layer.innerHTML = "";
       for (let i = 0; i < 26; i++) {
         const note = document.createElement("span");
-        note.textContent = chars[Math.floor(Math.random() * chars.length)];
+        note.textContent = theme.glyphs[Math.floor(Math.random() * theme.glyphs.length)];
         note.style.left = Math.random() * 100 + "vw";
         note.style.fontSize = (14 + Math.random() * 34) + "px";
         note.style.animationDuration = (12 + Math.random() * 16) + "s";
         note.style.animationDelay = (-Math.random() * 20) + "s";
+        note.style.color = theme.color;
         layer.appendChild(note);
       }
-    })();
+    }
 
     // --- state ---------------------------------------------------------------
     let board = null;
@@ -905,6 +948,8 @@
     }
 
     async function newBoard() {
+      // Each new round gets a fresh music-themed background.
+      applyBackgroundTheme();
       hideSummary();
       stopTimer();
       $("retry-btn").hidden = true;
