@@ -766,12 +766,54 @@
     let musicOn = false;
     let musicStep = 0;
 
-    const CHORDS = [
-      [60, 64, 67],   // C  major
-      [57, 60, 64],   // A minor
-      [53, 57, 60],   // F  major
-      [55, 59, 62],   // G  major
+    // A few gentle synthesized tunes; the game softly alternates between them.
+    const TUNES = [
+      {
+        name: "classic",
+        chords: [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]],
+        step: 320,
+        wave: "triangle",
+      },
+      {
+        name: "bright",
+        chords: [[62, 66, 69], [59, 62, 67], [57, 60, 64], [55, 59, 62]],
+        step: 270,
+        wave: "triangle",
+      },
+      {
+        name: "calm",
+        chords: [[57, 60, 64], [53, 57, 60], [55, 59, 62], [52, 55, 59]],
+        step: 400,
+        wave: "sine",
+      },
+      {
+        name: "dreamy",
+        chords: [[59, 62, 67], [57, 60, 64], [55, 59, 62], [52, 56, 59]],
+        step: 350,
+        wave: "sine",
+      },
     ];
+
+    let activeTune = TUNES[0];
+    let prevTuneIndex = -1;
+
+    // Each new round picks a different tune — never the previous one.
+    function pickTune() {
+      if (TUNES.length < 2) { activeTune = TUNES[0]; return; }
+      let i;
+      do { i = Math.floor(Math.random() * TUNES.length); }
+      while (i === prevTuneIndex);
+      prevTuneIndex = i;
+      activeTune = TUNES[i];
+    }
+
+    // (Re)start the ticker at the active tune's tempo.
+    function applyTuneLoop() {
+      if (musicTimer) clearInterval(musicTimer);
+      musicTimer = null;
+      if (!musicOn) return;
+      musicTimer = setInterval(musicTick, activeTune.step);
+    }
 
     function midiFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
 
@@ -791,11 +833,12 @@
       osc.stop(t0 + dur + 0.05);
     }
 
-    // One gentle music-box note every 320 ms, arpeggiating a slow chord loop.
+    // Gentle music-box notes arpeggiating the active tune's chord loop.
     function musicTick() {
-      const chord = CHORDS[Math.floor(musicStep / 8) % CHORDS.length];
+      const t = activeTune;
+      const chord = t.chords[Math.floor(musicStep / 8) % t.chords.length];
       const note = chord[musicStep % 3] + (Math.floor(musicStep / 3) % 2 ? 12 : 0);
-      tone(note, 1.0, "triangle", 0.8);
+      tone(note, 1.0, t.wave, 0.8);
       if (musicStep % 12 === 0) tone(chord[0] - 12, 1.8, "sine", 0.5); // soft bass
       musicStep++;
     }
@@ -808,10 +851,9 @@
         musicGain.connect(audioCtx.destination);
       }
       if (audioCtx.state === "suspended") audioCtx.resume();
-      if (musicTimer) clearInterval(musicTimer);
       musicStep = 0;
-      musicTimer = setInterval(musicTick, 320);
       musicOn = true;
+      applyTuneLoop();
       $("music-btn").textContent = "🔇 Music off";
       $("eq").classList.add("playing");
     }
@@ -954,11 +996,14 @@
       hideSummary();
       stopTimer();
 
-      // Alternate rounds: turn 1 mixes English + Chinese, turn 2 is all
-      // Chinese (players know the Cantonese favourites better), and so on.
+      // Alternate rounds: turn 1 is all-Chinese (players know the Cantonese
+      // favourites best), turn 2 mixes English + Chinese, and so on.
       roundNumber++;
       const chineseOnly = roundNumber % 2 === 1;
       const language = chineseOnly ? "chinese" : "mixed";
+      // Alternate the melodic background tune with each round too.
+      pickTune();
+      if (musicOn) applyTuneLoop();
       $("retry-btn").hidden = true;
       selected = null;
       matchedCount = 0;
