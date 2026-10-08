@@ -753,6 +753,7 @@
     const attempted = new Set();
     let locked = false;
     let seconds = 0;
+    let roundNumber = 0;
     let timerId = null;
     let popupTimer = null;
 
@@ -952,6 +953,12 @@
       applyBackgroundTheme();
       hideSummary();
       stopTimer();
+
+      // Alternate rounds: turn 1 mixes English + Chinese, turn 2 is all
+      // Chinese (players know the Cantonese favourites better), and so on.
+      roundNumber++;
+      const chineseOnly = roundNumber % 2 === 1;
+      const language = chineseOnly ? "chinese" : "mixed";
       $("retry-btn").hidden = true;
       selected = null;
       matchedCount = 0;
@@ -963,7 +970,7 @@
       let data;
       try {
         const size = IS_ADVANCE ? 12 : 10;
-        const res = await fetch(API_BASE + "/game/board?size=" + size);
+        const res = await fetch(API_BASE + "/game/board?size=" + size + "&language=" + language);
         if (!res.ok) throw new Error(await res.text());
         data = await res.json();
       } catch (err) {
@@ -1051,7 +1058,8 @@
         ? " — pick a song card, then flip a singer card to reveal it. 🧠"
         : " — pick a song card, then a singer. 🎵";
       status(
-        `Round: ${board.size} random song${board.size === 1 ? "" : "s"} of ${board.available}${hint}`
+        `Round ${roundNumber} · ${chineseOnly ? "Chinese songs only ⭐" : "English + Chinese mix 🌍"}`
+        + ` — ${board.size} song${board.size === 1 ? "" : "s"} of ${board.available}${hint}`
       );
     }
 

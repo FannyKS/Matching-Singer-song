@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import csv
 import random
+import re
 from pathlib import Path
 
 from app.schemas import GameBoard
@@ -26,6 +27,14 @@ ROUND_SIZE = 10
 
 # Excel writes a UTF-8 BOM; older Mac/Windows spreadsheets may be Big5/GB2312.
 _ENCODINGS = ("utf-8-sig", "big5", "gb18030")
+
+# Han characters (Basic + Extension A) mark a title as a Chinese song.
+_CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
+
+
+def is_chinese_song(title: str) -> bool:
+    """True when the title contains Chinese characters (Cantonese favourites)."""
+    return bool(_CJK.search(title))
 
 
 def _decode(path: Path) -> str:
@@ -118,14 +127,20 @@ def sample_board(
     notes: list[str] | None = None,
     size: int = ROUND_SIZE,
     rng: random.Random | None = None,
+    chinese_only: bool = False,
 ) -> GameBoard:
     """Randomly pick a round's worth of entries and shuffle both columns.
 
-    Singers repeat in the right column exactly as often as they perform songs
-    in the answer key, so a singer with several songs gets several cards.
+    ``chinese_only=True`` draws only Chinese-titled songs (familiar Cantonese
+    favourites); falls back to everything if there are none so a board never
+    comes out empty. Singers repeat in the right column exactly as often as
+    they perform songs in the answer key.
     """
     rng = rng or random
-    picked = rng.sample(sorted(key.keys()), k=min(size, len(key)))
+    pool = key if not chinese_only else {t: s for t, s in key.items() if is_chinese_song(t)}
+    if not pool:
+        pool = key
+    picked = rng.sample(sorted(pool.keys()), k=min(size, len(pool)))
 
     songs = list(picked)
     singers = [key[song] for song in picked]
