@@ -569,11 +569,24 @@
       font-size: 1.6rem;
       transform: rotateY(0deg);
     }
-    /* Microphone icons on the face-down singer cards (light blue, not gold). */
-    .mic-ico {
+    /* One simple stand-microphone on the face-down singer cards (light blue). */
+    .board[data-level="advance"] .singer .card .front .mic-ico {
       position: absolute;
-      width: 32%;
-      color: rgba(125, 211, 252, 0.75);
+      inset: 0;
+      margin: auto;
+      width: 42%;
+      color: rgba(125, 211, 252, 0.85);
+    }
+    /* Number tucked into the corner so the mic stays the hero. */
+    .board[data-level="advance"] .singer .card .front .num {
+      inset: auto;
+      top: 6px;
+      left: 10px;
+      right: auto;
+      font-size: 1rem;
+      font-weight: 700;
+      color: rgba(173, 216, 230, 0.85);
+      text-shadow: none;
     }
     .board[data-level="advance"] .singer .card .back {
       background: linear-gradient(145deg, #24304f, #1b2440);
@@ -861,31 +874,20 @@
       return front;
     }
 
-    // The face-down side for ADVANCE singer cards: a retro microphone motif
+    // The face-down side for ADVANCE singer cards: one simple stand-mic motif
     // (not music notes) so the two face-down decks are easy to tell apart.
     function buildSingerFaceFront(index) {
-      const mic =
-        '<svg class="mic-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-        ' stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
-        '<circle cx="12" cy="7.8" r="5.2"/>' +
-        '<path d="M9 6.3h6M9 7.8h6M9 9.3h6"/>' +
-        '<path d="M9.4 13h5.2l1.4 4.8H8z"/>' +
-        '<path d="M7.6 20.2h8.8"/></svg>';
       const front = document.createElement("div");
       front.className = "face front";
-      front.innerHTML = mic + mic + '<span class="num"></span>';
+      front.innerHTML =
+        '<svg class="mic-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+        ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+        '<circle cx="12" cy="5" r="2.6"/>' +
+        '<path d="M10.6 7.6v2.2a1.4 1.4 0 0 0 2.8 0V7.6"/>' +
+        '<path d="M9.4 10.4L6.3 19M14.6 10.4l3.1 8.6"/>' +
+        '<path d="M5.5 19.5h13"/></svg>' +
+        '<span class="num"></span>';
       front.querySelector(".num").textContent = index + 1;
-
-      // Scatter the two microphones at random spots on each card.
-      const mics = front.querySelectorAll(".mic-ico");
-      mics[0].style.left = (4 + Math.random() * 34) + "%";
-      mics[0].style.top = (6 + Math.random() * 40) + "%";
-      mics[0].style.transform =
-        `rotate(${-24 + Math.random() * 48}deg) scale(${0.8 + Math.random() * 0.5})`;
-      mics[1].style.right = (4 + Math.random() * 34) + "%";
-      mics[1].style.bottom = (6 + Math.random() * 34) + "%";
-      mics[1].style.transform =
-        `rotate(${-24 + Math.random() * 48}deg) scale(${0.8 + Math.random() * 0.5})`;
       return front;
     }
 
