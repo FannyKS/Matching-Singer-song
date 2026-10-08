@@ -35,16 +35,21 @@ def root() -> RedirectResponse:
     return RedirectResponse(url="/game")
 
 
+# Serve the game/analyzer pages without letting browsers cache them, so
+# fresh edits always show after a reload (no stale HTML surprises).
+_NO_CACHE = {"Cache-Control": "no-store, no-cache, must-revalidate"}
+
+
 @app.get("/game", tags=["meta"], response_class=FileResponse)
 def game_page() -> FileResponse:
     """Serve the matching game board."""
-    return FileResponse(WEB_DIR / "index.html")
+    return FileResponse(WEB_DIR / "index.html", headers=_NO_CACHE)
 
 
 @app.get("/analyzer", tags=["meta"], response_class=FileResponse)
 def analyzer_page() -> FileResponse:
     """Serve the singer-fit analyzer (score how well a singer fits a song)."""
-    return FileResponse(WEB_DIR / "analyzer.html")
+    return FileResponse(WEB_DIR / "analyzer.html", headers=_NO_CACHE)
 
 
 @app.get("/health", tags=["meta"])

@@ -515,7 +515,7 @@
     <div id="warnings" aria-live="polite"></div>
     <button id="retry-btn" hidden>🔄 Reload board</button>
 
-    <div class="board" id="board">
+    <div class="board layout-stage" id="board">
       <section class="column song">
         <h2>♪ Songs</h2>
         <div class="cards" id="song-column"></div>
@@ -948,6 +948,11 @@
 
     // Browsers block sound until the first click — start softly on that click.
     document.addEventListener("pointerdown", () => startMusic(), { once: true });
+
+    // Stage view is the default layout — label the button to match.
+    $("layout-btn").textContent = $("board").classList.contains("layout-stage")
+      ? "🎭 Classic view"
+      : "🎭 Stage view";
 
     newBoard();
   </script>
