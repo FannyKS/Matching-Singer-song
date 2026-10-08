@@ -569,15 +569,18 @@
       font-size: 1.6rem;
       transform: rotateY(0deg);
     }
-    /* One simple stand-microphone on the face-down singer cards (light blue). */
-    .board[data-level="advance"] .singer .card .front .mic-ico {
+    /* A treble clef on the face-down singer cards (light blue, not gold). */
+    .board[data-level="advance"] .singer .card .front .clef {
       position: absolute;
       inset: 0;
-      margin: auto;
-      width: 42%;
-      color: rgba(125, 211, 252, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.2rem;
+      line-height: 1;
+      color: rgba(125, 211, 252, 0.9);
     }
-    /* Number tucked into the corner so the mic stays the hero. */
+    /* Number tucked into the corner so the clef stays the hero. */
     .board[data-level="advance"] .singer .card .front .num {
       inset: auto;
       top: 6px;
@@ -874,19 +877,12 @@
       return front;
     }
 
-    // The face-down side for ADVANCE singer cards: one simple stand-mic motif
-    // (not music notes) so the two face-down decks are easy to tell apart.
+    // The face-down side for ADVANCE singer cards: a treble clef motif (not music
+    // notes) so the two face-down decks are easy to tell apart.
     function buildSingerFaceFront(index) {
       const front = document.createElement("div");
       front.className = "face front";
-      front.innerHTML =
-        '<svg class="mic-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-        ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
-        '<circle cx="12" cy="5" r="2.6"/>' +
-        '<path d="M10.6 7.6v2.2a1.4 1.4 0 0 0 2.8 0V7.6"/>' +
-        '<path d="M9.4 10.4L6.3 19M14.6 10.4l3.1 8.6"/>' +
-        '<path d="M5.5 19.5h13"/></svg>' +
-        '<span class="num"></span>';
+      front.innerHTML = '<span class="clef">𝄞</span><span class="num"></span>';
       front.querySelector(".num").textContent = index + 1;
       return front;
     }
