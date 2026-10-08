@@ -553,6 +553,17 @@
       width: 180px;
       min-height: 138px;
     }
+    /* A 15-song Advance round: tighten the tiles a touch so it stays airy. */
+    .board[data-count="15"][data-level="advance"] .column .cards { gap: 10px; }
+    .board[data-count="15"][data-level="advance"] .column.song .card {
+      width: 150px;
+      min-height: 96px;
+    }
+    .board[data-count="15"][data-level="advance"] .column.singer .card,
+    .board.layout-stage[data-count="15"][data-level="advance"] .column.singer .card {
+      width: 150px;
+      min-height: 120px;
+    }
   </style>
 </head>
 <body>
@@ -846,7 +857,8 @@
 
       let data;
       try {
-        const res = await fetch(API_BASE + "/game/board");
+        const size = IS_ADVANCE ? 15 : 10;
+        const res = await fetch(API_BASE + "/game/board?size=" + size);
         if (!res.ok) throw new Error(await res.text());
         data = await res.json();
       } catch (err) {
@@ -856,6 +868,8 @@
       }
 
       board = data;
+      // Lets the CSS tighten the grid when the round is bigger than usual.
+      $("board").dataset.count = String(data.size);
 
       const warnings = $("warnings");
       warnings.innerHTML = "";
