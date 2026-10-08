@@ -4,7 +4,7 @@
 #
 #  Double-click this file to:
 #    1. start the game server (if it isn't already running)
-#    2. open the matching game in your default browser
+#    2. open the level picker (Easy / Advance) in your default browser
 #
 #  No need to type a URL ever again. Close the Terminal window after the
 #  browser opens and the game keeps running in the background.
@@ -30,8 +30,8 @@ else
   fi
 fi
 
-# 2. Open the game.
-open "http://127.0.0.1:8000/game"
+# 2. Open the level picker.
+open "http://127.0.0.1:8000/"
 echo "✓ Game opened in your browser. You can close this window."
 echo
 
