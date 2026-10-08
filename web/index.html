@@ -564,10 +564,16 @@
       line-height: 1.25;
     }
     .board[data-level="advance"] .singer .card .front {
-      background: linear-gradient(145deg, var(--card-front), #2b2145);
+      background: linear-gradient(145deg, #24546a, #183347);
       color: var(--accent-2);
       font-size: 1.6rem;
       transform: rotateY(0deg);
+    }
+    /* Microphone icons on the face-down singer cards (light blue, not gold). */
+    .mic-ico {
+      position: absolute;
+      width: 32%;
+      color: rgba(125, 211, 252, 0.75);
     }
     .board[data-level="advance"] .singer .card .back {
       background: linear-gradient(145deg, #24304f, #1b2440);
@@ -855,6 +861,34 @@
       return front;
     }
 
+    // The face-down side for ADVANCE singer cards: a retro microphone motif
+    // (not music notes) so the two face-down decks are easy to tell apart.
+    function buildSingerFaceFront(index) {
+      const mic =
+        '<svg class="mic-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+        ' stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+        '<circle cx="12" cy="7.8" r="5.2"/>' +
+        '<path d="M9 6.3h6M9 7.8h6M9 9.3h6"/>' +
+        '<path d="M9.4 13h5.2l1.4 4.8H8z"/>' +
+        '<path d="M7.6 20.2h8.8"/></svg>';
+      const front = document.createElement("div");
+      front.className = "face front";
+      front.innerHTML = mic + mic + '<span class="num"></span>';
+      front.querySelector(".num").textContent = index + 1;
+
+      // Scatter the two microphones at random spots on each card.
+      const mics = front.querySelectorAll(".mic-ico");
+      mics[0].style.left = (4 + Math.random() * 34) + "%";
+      mics[0].style.top = (6 + Math.random() * 40) + "%";
+      mics[0].style.transform =
+        `rotate(${-24 + Math.random() * 48}deg) scale(${0.8 + Math.random() * 0.5})`;
+      mics[1].style.right = (4 + Math.random() * 34) + "%";
+      mics[1].style.bottom = (6 + Math.random() * 34) + "%";
+      mics[1].style.transform =
+        `rotate(${-24 + Math.random() * 48}deg) scale(${0.8 + Math.random() * 0.5})`;
+      return front;
+    }
+
     // The circular avatar: a letter until the singer photo loads in.
     function buildSingerAvatar(singer) {
       const photo = document.createElement("span");
@@ -948,7 +982,7 @@
           back.appendChild(photo);
           back.appendChild(name);
 
-          card.appendChild(buildFaceFront(index));
+          card.appendChild(buildSingerFaceFront(index));
           card.appendChild(back);
           card.addEventListener("click", () => onSingerClick(card, singer));
           singerCol.appendChild(card);
