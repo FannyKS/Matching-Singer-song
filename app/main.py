@@ -4,14 +4,14 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from app.routers import game, images, matching
 
 app = FastAPI(
     title="Matching-Singer-song",
     description="A singer↔song matching game, plus a singer-fit analyzer — the Olddies toolbox.",
-    version="0.4.0",
+    version="0.5.0",
 )
 
 # Allow the in-browser pages to call the API from any origin (dev convenience).
@@ -30,14 +30,9 @@ WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 
 @app.get("/", tags=["meta"])
-def root() -> dict:
-    return {
-        "app": "Matching-Singer-song",
-        "game": "/game",
-        "analyzer": "/analyzer",
-        "docs": "/docs",
-        "health": "ok",
-    }
+def root() -> RedirectResponse:
+    """Land visitors straight on the matching game board."""
+    return RedirectResponse(url="/game")
 
 
 @app.get("/game", tags=["meta"], response_class=FileResponse)
