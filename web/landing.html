@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matching-Singer-song — Choose a level</title>
+  <style>
+    :root {
+      --bg: #120e1f;
+      --panel: #1e1733;
+      --panel-2: #2a2145;
+      --card-front: #3a2d5c;
+      --accent: #ff6b9d;
+      --accent-2: #ffd166;
+      --green: #4ade80;
+      --text: #f3eefe;
+      --muted: #a99fc4;
+      --border: #392f5a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 0%, #2a1f47 0%, var(--bg) 55%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+
+    #notes {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    #notes span {
+      position: absolute;
+      bottom: -10vh;
+      color: rgba(255, 107, 157, 0.14);
+      animation: floatUp linear infinite;
+      user-select: none;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateY(-120vh) rotate(25deg); opacity: 0; }
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2.1rem;
+      margin: 0 0 6px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: hueShift 6s linear infinite;
+    }
+    @keyframes hueShift { to { background-position: 200% center; } }
+
+    .sub { color: var(--muted); font-size: 1.05rem; margin: 0 0 34px; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 26px 30px;
+      margin-bottom: 26px;
+      text-align: left;
+    }
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+    }
+    .panel ul { margin: 0; padding-left: 18px; color: var(--text); line-height: 1.7; }
+    .panel ul b { color: var(--accent-2); }
+
+    .levels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .level-card {
+      display: block;
+      text-decoration: none;
+      color: var(--text);
+      background: var(--panel-2);
+      border: 2px solid var(--border);
+      border-radius: 22px;
+      padding: 28px 26px;
+      text-align: center;
+      transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .level-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+    .level-card.easy:hover { border-color: var(--green); }
+    .level-card.advance:hover { border-color: var(--accent); }
+    .level-card .badge { font-size: 2.6rem; }
+    .level-card h2 {
+      margin: 12px 0 10px;
+      font-size: 1.5rem;
+      letter-spacing: 0.04em;
+    }
+    .level-card.easy h2 { color: var(--green); }
+    .level-card.advance h2 { color: var(--accent); }
+    .level-card p { color: var(--muted); font-size: 0.95rem; line-height: 1.55; margin: 0 0 18px; }
+    .level-card .go {
+      display: inline-block;
+      background: linear-gradient(90deg, var(--accent), #ff8fab);
+      color: #2a0d1a;
+      font-weight: 800;
+      border-radius: 999px;
+      padding: 10px 22px;
+      font-size: 0.95rem;
+    }
+    .level-card.easy .go { background: linear-gradient(90deg, #4ade80, #22c55e); color: #06210f; }
+
+    footer { color: var(--muted); font-size: 0.9rem; }
+    footer a { color: var(--accent-2); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      .levels { grid-template-columns: 1fr; }
+      header h1 { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+  <div id="notes" aria-hidden="true"></div>
+
+  <div class="wrap">
+    <header>
+      <h1>🎤 Matching-Singer-song</h1>
+      <p class="sub">Match every song to the singer who made it famous.</p>
+    </header>
+
+    <section class="panel">
+      <h2>How to play</h2>
+      <ul>
+        <li>Each round deals out <b>10 songs</b> at random — every song has <b>exactly one</b> correct singer.</li>
+        <li>Pick a song card and it <b>flips over</b> to reveal the title.</li>
+        <li>Then choose the singer who performs it. A singer with several songs gets a card for each.</li>
+        <li>Correct matches <b>glow green</b>; wrong guesses shake and flip back. Match all 10 to finish the round.</li>
+        <li>You're scored on <b>first-try matches</b>, total attempts, and time — with a score card at the end. 🎶</li>
+      </ul>
+    </section>
+
+    <section class="levels">
+      <a class="level-card easy" href="/game">
+        <div class="badge">🌱</div>
+        <h2>Easy</h2>
+        <p>Songs are face down, but every singer is <b>shown face-up</b> with their photo. Pick a song, then tap the singer you believe sings it.</p>
+        <span class="go">Start Easy →</span>
+      </a>
+      <a class="level-card advance" href="/game?level=advance">
+        <div class="badge">⚡</div>
+        <h2>Advance</h2>
+        <p>The singers are <b>face down too</b>! Pick a song, then flip a singer card to reveal who's behind it. Remember who you saw — wrong guesses flip back. 🧠</p>
+        <span class="go">Start Advance →</span>
+      </a>
+    </section>
+
+    <footer>
+      <a href="/analyzer">🎼 Try the singer-fit analyzer</a> — or send the host a new song list to grow the book.
+    </footer>
+  </div>
+
+  <script>
+    (function buildNotes() {
+      const chars = ["♪", "♫", "♬", "𝄞", "🎵", "🎶"];
+      const layer = document.getElementById("notes");
+      for (let i = 0; i < 26; i++) {
+        const note = document.createElement("span");
+        note.textContent = chars[Math.floor(Math.random() * chars.length)];
+        note.style.left = Math.random() * 100 + "vw";
+        note.style.fontSize = (14 + Math.random() * 34) + "px";
+        note.style.animationDuration = (12 + Math.random() * 16) + "s";
+        note.style.animationDelay = (-Math.random() * 20) + "s";
+        layer.appendChild(note);
+      }
+    })();
+  </script>
+</body>
+</html>

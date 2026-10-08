@@ -4,14 +4,14 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse
 
 from app.routers import game, images, matching
 
 app = FastAPI(
     title="Matching-Singer-song",
     description="A singer↔song matching game, plus a singer-fit analyzer — the Olddies toolbox.",
-    version="0.5.0",
+    version="0.6.0",
 )
 
 # Allow the in-browser pages to call the API from any origin (dev convenience).
@@ -28,16 +28,15 @@ app.include_router(images.router)
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
-
-@app.get("/", tags=["meta"])
-def root() -> RedirectResponse:
-    """Land visitors straight on the matching game board."""
-    return RedirectResponse(url="/game")
-
-
-# Serve the game/analyzer pages without letting browsers cache them, so
-# fresh edits always show after a reload (no stale HTML surprises).
+# Serve the pages without letting browsers cache them, so fresh edits always
+# show after a reload (no stale HTML surprises).
 _NO_CACHE = {"Cache-Control": "no-store, no-cache, must-revalidate"}
+
+
+@app.get("/", tags=["meta"], response_class=FileResponse)
+def root() -> FileResponse:
+    """Land on the level picker (Easy / Advance) launcher."""
+    return FileResponse(WEB_DIR / "landing.html", headers=_NO_CACHE)
 
 
 @app.get("/game", tags=["meta"], response_class=FileResponse)

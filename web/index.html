@@ -124,6 +124,18 @@
     }
     #music-btn:hover { color: var(--accent-2); border-color: var(--accent-2); }
 
+    #home-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    #home-btn:hover { color: var(--accent-2); border-color: var(--accent-2); }
+
     /* little equalizer bars, dancing while music plays */
     #eq {
       display: flex;
@@ -499,6 +511,48 @@
     .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .photo .initial { font-size: 1.5rem; font-weight: 900; color: var(--accent-2); }
     .singer .card .name { font-weight: 700; text-align: center; line-height: 1.25; }
+
+    /* --- ADVANCE level: singer cards face down, flip to reveal ---------------- */
+    .board[data-level="advance"] .singer .card {
+      display: block;                 /* undo the face-up singer card styling */
+      background: transparent;
+      padding: 0;
+      min-height: 112px;
+      transform-style: preserve-3d;
+    }
+    .board[data-level="advance"] .singer .card .face {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px 14px;
+      border-radius: 14px;
+      backface-visibility: hidden;
+      transition: transform 0.45s cubic-bezier(0.4, 0.1, 0.2, 1);
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .board[data-level="advance"] .singer .card .front {
+      background: linear-gradient(145deg, var(--card-front), #2b2145);
+      color: var(--accent-2);
+      font-size: 1.6rem;
+      transform: rotateY(0deg);
+    }
+    .board[data-level="advance"] .singer .card .back {
+      background: linear-gradient(145deg, #24304f, #1b2440);
+      transform: rotateY(180deg);
+      flex-direction: column;
+      gap: 8px;
+    }
+    .board[data-level="advance"] .singer .card.flipped .front { transform: rotateY(-180deg); }
+    .board[data-level="advance"] .singer .card.flipped .back  { transform: rotateY(0deg); }
+    /* Match the bigger song cards on the stage board. */
+    .board.layout-stage[data-level="advance"] .column.singer .card {
+      width: 180px;
+      min-height: 138px;
+    }
   </style>
 </head>
 <body>
@@ -511,9 +565,11 @@
         <div id="eq" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
         <div class="chip">Matched <b id="progress">0/0</b></div>
         <div class="chip">Time <b id="clock">0:00</b></div>
+        <div class="chip" id="level-chip">🌱 Level: Easy</div>
         <button id="music-btn">🎵 Music</button>
         <button id="layout-btn" title="Switch between the two board layouts">🎭 Stage view</button>
         <button id="reload-btn" title="Fresh board from the latest songs folder">↻ Reload songs</button>
+        <a id="home-btn" href="/" title="Back to the level picker">🏠 Menu</a>
         <button id="finish-btn">⏹ Game Finish</button>
       </div>
     </header>
@@ -561,6 +617,13 @@
     // works when opened straight from your file system (double-clicked) —
     // the server just needs to be running (see Start-Game.command).
     const API_BASE = "http://127.0.0.1:8000";
+
+    // --- level selection -------------------------------------------------------
+    // ?level=advance → singer cards are face down and the player flips them.
+    // anything else   → classic easy mode (song cards face down only).
+    const LEVEL = new URLSearchParams(location.search).get("level") === "advance"
+      ? "advance" : "easy";
+    const IS_ADVANCE = LEVEL === "advance";
 
     // --- floating music notes ------------------------------------------------
     (function buildNotes() {
@@ -726,7 +789,50 @@
       $("progress").textContent = `${matchedCount}/${board ? board.size : 0}`;
     }
 
-    // --- board rendering -----------------------------------------------------
+    // --- board rendering -------------------------------------------------------
+
+    // The numbered, face-down side shared by every flippable card.
+    function buildFaceFront(index) {
+      const front = document.createElement("div");
+      front.className = "face front";
+      front.innerHTML =
+        '<svg class="note-ico" viewBox="0 0 24 24">' +
+        '<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>' +
+        '<svg class="note-ico" viewBox="0 0 24 24">' +
+        '<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>' +
+        '<span class="num"></span>';
+      front.querySelector(".num").textContent = index + 1;
+
+      // Scatter the two notes at random spots on each card.
+      const notes = front.querySelectorAll(".note-ico");
+      notes[0].style.left = (4 + Math.random() * 34) + "%";
+      notes[0].style.top = (6 + Math.random() * 48) + "%";
+      notes[0].style.transform =
+        `rotate(${-28 + Math.random() * 56}deg) scale(${0.7 + Math.random() * 0.7})`;
+      notes[1].style.right = (4 + Math.random() * 34) + "%";
+      notes[1].style.bottom = (6 + Math.random() * 40) + "%";
+      notes[1].style.transform =
+        `rotate(${-28 + Math.random() * 56}deg) scale(${0.7 + Math.random() * 0.7})`;
+      return front;
+    }
+
+    // The circular avatar: a letter until the singer photo loads in.
+    function buildSingerAvatar(singer) {
+      const photo = document.createElement("span");
+      photo.className = "photo";
+      const initial = document.createElement("span");
+      initial.className = "initial";
+      initial.textContent = singer.trim().charAt(0) || "♪";
+      photo.appendChild(initial);
+
+      const img = new Image();
+      img.alt = singer;
+      img.onload = () => { initial.style.display = "none"; photo.appendChild(img); };
+      img.onerror = () => { /* keep the letter avatar */ };
+      img.src = API_BASE + "/singer-image/" + encodeURIComponent(singer);
+      return photo;
+    }
+
     async function newBoard() {
       hideSummary();
       stopTimer();
@@ -774,32 +880,11 @@
         card.className = "card";
         card.style.animationDelay = (index * 0.04) + "s";
 
-        const front = document.createElement("div");
-        front.className = "face front";
-        front.innerHTML =
-          '<svg class="note-ico" viewBox="0 0 24 24">' +
-          '<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>' +
-          '<svg class="note-ico" viewBox="0 0 24 24">' +
-          '<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>' +
-          '<span class="num"></span>';
-        front.querySelector(".num").textContent = index + 1;
-
-        // Scatter the two notes at random spots on each card.
-        const notes = front.querySelectorAll(".note-ico");
-        notes[0].style.left = (4 + Math.random() * 34) + "%";
-        notes[0].style.top = (6 + Math.random() * 48) + "%";
-        notes[0].style.transform =
-          `rotate(${-28 + Math.random() * 56}deg) scale(${0.7 + Math.random() * 0.7})`;
-        notes[1].style.right = (4 + Math.random() * 34) + "%";
-        notes[1].style.bottom = (6 + Math.random() * 40) + "%";
-        notes[1].style.transform =
-          `rotate(${-28 + Math.random() * 56}deg) scale(${0.7 + Math.random() * 0.7})`;
-
         const back = document.createElement("div");
         back.className = "face back";
         back.textContent = song;
 
-        card.appendChild(front);
+        card.appendChild(buildFaceFront(index));
         card.appendChild(back);
         card.addEventListener("click", () => onSongClick(card, song));
         songCol.appendChild(card);
@@ -807,27 +892,35 @@
 
       board.singers.forEach((singer, index) => {
         const card = document.createElement("button");
-        card.className = "card singer-card-body";
+        card.className = "card";
         card.style.animationDelay = (index * 0.04) + "s";
 
-        const photo = document.createElement("span");
-        photo.className = "photo";
-        const initial = document.createElement("span");
-        initial.className = "initial";
-        initial.textContent = singer.trim().charAt(0) || "♪";
-        photo.appendChild(initial);
+        if (IS_ADVANCE) {
+          // Advance mode: singers are face down too — flip to reveal.
+          const back = document.createElement("div");
+          back.className = "face back";
+          const photo = buildSingerAvatar(singer);
+          const name = document.createElement("span");
+          name.className = "name";
+          name.textContent = singer;
+          back.appendChild(photo);
+          back.appendChild(name);
 
-        const img = new Image();
-        img.alt = singer;
-        img.onload = () => { initial.style.display = "none"; photo.appendChild(img); };
-        img.onerror = () => { /* keep the letter avatar */ };
-        img.src = API_BASE + "/singer-image/" + encodeURIComponent(singer);
+          card.appendChild(buildFaceFront(index));
+          card.appendChild(back);
+          card.addEventListener("click", () => onSingerClick(card, singer));
+          singerCol.appendChild(card);
+          return;
+        }
+
+        // Easy mode: singers are shown face-up with their photo.
+        card.classList.add("singer-card-body");
+        card.appendChild(buildSingerAvatar(singer));
 
         const name = document.createElement("span");
         name.className = "name";
         name.textContent = singer;
 
-        card.appendChild(photo);
         card.appendChild(name);
         card.addEventListener("click", () => onSingerClick(card, singer));
         singerCol.appendChild(card);
@@ -835,9 +928,11 @@
 
       updateProgress();
       startTimer();
+      const hint = IS_ADVANCE
+        ? " — pick a song card, then flip a singer card to reveal it. 🧠"
+        : " — pick a song card, then a singer. 🎵";
       status(
-        `Round: ${board.size} random song${board.size === 1 ? "" : "s"} of ${board.available}`
-        + ` — pick a song card, then a singer. 🎵`
+        `Round: ${board.size} random song${board.size === 1 ? "" : "s"} of ${board.available}${hint}`
       );
     }
 
@@ -868,6 +963,9 @@
         return;
       }
 
+      // Advance mode: reveal the singer by flipping the card up.
+      if (IS_ADVANCE) card.classList.add("flipped");
+
       const { card: songCard, song } = selected;
       const songAlreadyTried = attempted.has(song);
       attempts++;
@@ -887,7 +985,7 @@
           if (data.correct) {
             if (!songAlreadyTried) firstTry++;
             freeze(songCard);
-            freeze(card);
+            freeze(card, IS_ADVANCE);
             matchedCount++;
             updateProgress();
             showMatchPopup(song, singer);
@@ -907,19 +1005,25 @@
               songCard.classList.remove("shake");
               card.classList.remove("shake");
               songCard.classList.remove("flipped", "selected");
+              if (IS_ADVANCE) card.classList.remove("flipped");
               selected = null;
             }, 650);
-            status(`“${song}” isn't by ${singer}. Try another singer.`);
+            status(
+              IS_ADVANCE
+                ? `“${song}” isn't by ${singer} — both cards flip back. 🔄`
+                : `“${song}” isn't by ${singer}. Try another singer.`
+            );
           }
         })
         .catch((err) => status("Match check failed: " + err.message))
         .finally(() => { locked = false; });
     }
 
-    function freeze(card) {
+    function freeze(card, keepFlipped) {
       card.style.animationDelay = "0s";
       card.classList.add("matched");
-      card.classList.remove("flipped", "selected");
+      if (keepFlipped) card.classList.remove("selected");
+      else card.classList.remove("flipped", "selected");
     }
 
     function showMatchPopup(song, singer) {
@@ -960,6 +1064,12 @@
     $("layout-btn").textContent = $("board").classList.contains("layout-stage")
       ? "🎭 Classic view"
       : "🎭 Stage view";
+
+    // Tag the board with the chosen level and show it in the header.
+    $("board").dataset.level = LEVEL;
+    $("level-chip").textContent = IS_ADVANCE
+      ? "⚡ Level: Advance"
+      : "🌱 Level: Easy";
 
     newBoard();
   </script>
