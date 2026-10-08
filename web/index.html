@@ -577,11 +577,14 @@
     }
     .board[data-level="advance"] .singer .card.flipped .front { transform: rotateY(-180deg); }
     .board[data-level="advance"] .singer .card.flipped .back  { transform: rotateY(0deg); }
-    /* Match the bigger song cards on the stage board. */
+    /* Advance: keep song cards big but slim the singer cards to fit the screen. */
     .board.layout-stage[data-level="advance"] .column.singer .card {
-      width: 180px;
-      min-height: 138px;
+      width: 150px;
+      min-height: 114px;
     }
+    .board[data-level="advance"] .singer .card .back { gap: 6px; padding: 8px 12px; }
+    .board[data-level="advance"] .singer .card .photo { width: 54px; height: 54px; }
+    .board[data-level="advance"] .singer .card .name { font-size: 0.92rem; }
   </style>
 </head>
 <body>
@@ -1023,7 +1026,8 @@
         .then((data) => {
           if (data.correct) {
             if (!songAlreadyTried) firstTry++;
-            freeze(songCard);
+            // Reveal the song and the singer, and keep them showing.
+            freeze(songCard, true);
             freeze(card, IS_ADVANCE);
             matchedCount++;
             updateProgress();
